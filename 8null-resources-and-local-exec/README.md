@@ -20,6 +20,30 @@ terraform apply tfdev_plan
 terraform destroy -var env=dev -auto-approve
 ```
 
+`main.tf` contents
+```
+# Download the latest Ghost Image
+resource "docker_image" "image_id" {
+  name = "${lookup(var.image_name, var.env)}"
+}
+
+# Start the Container
+resource "docker_container" "container_id" {
+  name  = "${lookup(var.container_name, var.env)}"
+  image = "${docker_image.image_id.latest}"
+  ports {
+    internal = "${var.int_port}"
+    external = "${lookup(var.ext_port, var.env)}"
+  }
+}
+
+resource "null_resource" "null_id" {
+  provisioner "local-exec" {
+    command = "echo ${docker_container.container_id.name}:${docker_container.container_id.ip_address} >> container.txt"
+  }
+}
+```
+
 when using workspaces, tfstate is held by terraform with respect to specific workspace.<br>
 
 When using local-exec provisioner, it only executes the specified command on the machine running terraform but not on the resource.<br>
